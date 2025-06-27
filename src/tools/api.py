@@ -49,6 +49,13 @@ def _make_api_request(url: str, headers: dict, method: str = "GET", json_data: d
         if response.status_code == 429 and attempt < max_retries:
             # Linear backoff: 60s, 90s, 120s, 150s...
             delay = 60 + (30 * attempt)
+            if "detail" in response.text:
+                try:
+                    retry_after = int(response.text.split("Expected available in ")[1].split(" seconds")[0])
+                    if retry_after > 0:
+                        delay = retry_after + 1  # Add 1 second to account for potential rounding errors
+                except (IndexError, ValueError):
+                    pass
             print(f"Rate limited (429). Attempt {attempt + 1}/{max_retries + 1}. Waiting {delay}s before retrying...")
             time.sleep(delay)
             continue
